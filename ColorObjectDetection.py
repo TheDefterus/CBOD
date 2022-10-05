@@ -103,11 +103,10 @@ class ColorObjectDetector:
                 target_img = cv.imread(imagePath)
                 sum_of_widths += target_img.shape[1]
                 target_hsv = cv.cvtColor(target_img, cv.COLOR_BGR2HSV)
+                cv.imshow('wtf', target_hsv)
+                cv.waitKey()
                 # histogram generation
-                if key == 'Black' or key == 'Sole':
-                    histogram = cv.calcHist([target_hsv], [0, 1, 2], None, [45, 64, 64], [0, 45, 0, 64, 0, 64])
-                else:
-                    histogram = cv.calcHist([target_hsv], [0, 1, 2], None, [45, 64, 64], [0, 45, 0, 64, 0, 64])
+                histogram = cv.calcHist([target_hsv], [0, 1, 2], None, [45, 64, 64], [0, 180, 0, 256, 0, 256])
                 cv.normalize(histogram, histogram, alpha=0, beta=1, norm_type=cv.NORM_MINMAX)
                 # size measurement
                 if key == 'Red':
@@ -192,12 +191,11 @@ class ColorObjectDetector:
                 lower_x = int((detectionCoordinate[1] - int(np.floor(self.average_widths / 2))))
                 upper_x = int((detectionCoordinate[1] + int(np.floor((self.average_widths + 1) / 2))))
                 ROI = hsv_blurred_image[lower_x:upper_x, lower_y:upper_y, :]
-                detectionHistogram = cv.calcHist([ROI], [0, 1, 2], None, [45, 64, 64], [0, 45, 0, 64, 0, 64])
-                if key == 'Black' or key == 'Sole':
-                    detectionHistogram = cv.calcHist([ROI], [0, 1, 2], None, [45, 64, 64], [0, 45, 0, 64, 0, 64])
+                detectionHistogram = cv.calcHist([ROI], [0, 1, 2], None, [45, 64, 64], [0, 180, 0, 256, 0, 256])
                 cv.normalize(detectionHistogram, detectionHistogram, alpha=0, beta=1, norm_type=cv.NORM_MINMAX)
                 similarity_score = cv.compareHist(self.targets_c_h_s[key][1], detectionHistogram,
                                                   cv.HISTCMP_BHATTACHARYYA)
+
                 # print(similarity_score)
                 key_value_pair = {tuple(detectionCoordinate): similarity_score}
                 similarities.update(key_value_pair)
