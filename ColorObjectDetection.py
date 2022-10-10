@@ -67,17 +67,21 @@ color_dict_s = {'Red': [red_lower_range_s, red_upper_range_s],
 # sole
 sole_lower_range_c = np.array([40, 0, 210])
 sole_upper_range_c = np.array([100, 55, 255])
-color_dict_c = {'Sole': [sole_lower_range_c, sole_upper_range_c]}
+# vertical sole
+vsole_lower_range_c = np.array([0, 6, 160])
+vsole_upper_range_c = np.array([70, 38, 190])
+color_dict_c = {'Sole': [sole_lower_range_c, sole_upper_range_c],
+                'VerticalSole': [vsole_lower_range_c, vsole_upper_range_c]}
 
 
 class ColorObjectDetector:
     def __init__(self, targets=None, PorSorC='c', K=7, T_sl=1000, T_su=4000, step_by_step_recording=False,
-                 example_color='Sole'):
+                 example_color='Sole', SizeTolerance=2):
         self.targets_c_h_s = {}
         self.kernelLength = K
         self.sizeThresholdDefault = [T_sl, T_su]
-        self.openKernel = np.ones((self.kernelLength, self.kernelLength), np.uint8)
-        self.closeKernel = np.ones((self.kernelLength * 2 + 1, self.kernelLength * 2 + 1), np.uint8)
+        self.openKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, [K, K])
+        self.closeKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, [K * 2 + 1, K * 2 + 1])
         self.histograms_available = False
         if PorSorC == 'p':
             color_dict = color_dict_p
@@ -100,11 +104,10 @@ class ColorObjectDetector:
         else:
             for imagePath in targets:
                 key = imagePath[:-6]
+                key = key.split('\\')[-1]
                 target_img = cv.imread(imagePath)
                 sum_of_widths += target_img.shape[1]
                 target_hsv = cv.cvtColor(target_img, cv.COLOR_BGR2HSV)
-                cv.imshow('wtf', target_hsv)
-                cv.waitKey()
                 # histogram generation
                 histogram = cv.calcHist([target_hsv], [0, 1, 2], None, [45, 64, 64], [0, 180, 0, 256, 0, 256])
                 cv.normalize(histogram, histogram, alpha=0, beta=1, norm_type=cv.NORM_MINMAX)
@@ -124,7 +127,7 @@ class ColorObjectDetector:
                 closed_image = cv.morphologyEx(opened_image, cv.MORPH_CLOSE, self.closeKernel)
                 cn, h = cv.findContours(closed_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
                 M00 = max(cv.moments(element)['m00'] for element in cn)
-                sizeThresholds = [M00 / 4, M00 * 2]
+                sizeThresholds = [M00 / SizeTolerance, M00 * SizeTolerance]
                 # update with final values
                 self.targets_c_h_s.update({key: [color_dict[key], histogram, sizeThresholds]})
             self.histograms_available = True
